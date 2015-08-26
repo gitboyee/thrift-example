@@ -1,0 +1,71 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+
+buildscript {
+
+repositories {
+  mavenLocal()
+  maven { url "http://192.168.88.8:8081/nexus/content/groups/public" }
+  maven { url "http://192.168.88.8:8081/nexus/content/repositories/releases" }
+  mavenCentral()
+}
+
+
+    dependencies {
+    }
+}
+
+repositories {
+  mavenLocal()
+  maven { url "http://192.168.88.8:8081/nexus/content/groups/public" }
+  maven { url "http://192.168.88.8:8081/nexus/content/repositories/releases" }
+  mavenCentral()
+}
+
+
+dependencies {
+  compile 'org.apache.thrift:libthrift:0.9.2'
+  compile 'org.slf4j:slf4j-api:1.7.7'
+}
+
+
+sourceSets {
+  main {
+    java {
+      srcDirs "${projectDir}/src/main/gen-java"
+    }
+  }
+}
+
+task generateThrift(dependsOn: clean) << {
+  ext {
+    thriftFiles = fileTree(dir: 'src/main/thrift').matching {include '**/*.thrift'}
+  }
+  thriftFiles.collect{ it }.each {
+    def fpath = it.toString()
+    exec {
+      executable = 'thrift'
+      args = ['--gen', 'java:hashcode', '-o', "$projectDir/src/main", fpath]
+    }
+  }
+}
+
+clean.doLast {
+  ant.delete(dir: "$projectDir/src/main/gen-java")
+}
+
+task startServer(type: JavaExec){
+  main = "com.unionpaysmart.app.ThriftServer"
+  classpath = sourceSets.main.runtimeClasspath
+}
+
+task startClient(type: JavaExec){
+  main = "com.unionpaysmart.app.ThriftClient"
+  classpath = sourceSets.main.runtimeClasspath
+  args 'simple'
+}
+
